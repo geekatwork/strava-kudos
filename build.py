@@ -20,7 +20,7 @@ def build():
 
     root = Path(__file__).resolve().parent
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    resources = {"README.txt", *manifest.get("icons", {}).values()}
+    resources = {"README.md", *manifest.get("icons", {}).values()}
     for content_script in manifest["content_scripts"]:
         resources.update(content_script.get("js", []))
         resources.update(content_script.get("css", []))
