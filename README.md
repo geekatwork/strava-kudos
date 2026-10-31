@@ -71,7 +71,7 @@ create:
 | `dist/firefox.zip` | Firefox, with its add-on ID and data-collection declaration |
 
 Each ZIP contains `manifest.json` at its root. Rebuilding overwrites these
-ZIPs. Generated builds are excluded from Git by [.gitignore](./.gitignore).
+ZIPs. Generated builds in `dist/` are tracked in Git alongside the source.
 Safari builds are not provided.
 
 ## Distribution
