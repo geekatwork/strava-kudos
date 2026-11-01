@@ -74,6 +74,30 @@ Each ZIP contains `manifest.json` at its root. Rebuilding overwrites these
 ZIPs. Generated builds in `dist/` are tracked in Git alongside the source.
 Safari builds are not provided.
 
+## Development tests
+
+Requires Node.js 22.12+ (22.x), 24.x, or 26+ and npm.
+
+```bash
+npm ci
+npm test
+```
+
+The Vitest tests run the shipped content script in isolated jsdom pages with
+synthetic current and legacy feed fixtures. They do not load remote resources
+or send real kudos, and disconnect their observers after each test.
+Test dependencies are development-only and are not included in browser ZIPs.
+
+Tests cover eligibility, overlapping selectors, counts/reset, and navigation
+mounting/replacement. Disabled legacy buttons are excluded from the count,
+and buttons matching both selectors are clicked only once while retaining
+current-card eligibility checks.
+
+DOM tests do not prove compatibility with Strava's live markup. Before a
+release, manually smoke-test the unpacked extension in Chrome and Firefox,
+including navigation changes and kudos behavior on activities you intend to
+give kudos to.
+
 ## Distribution
 
 ### Chrome Web Store
