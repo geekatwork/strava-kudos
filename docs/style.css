@@ -1,0 +1,30 @@
+body {
+  margin: 0;
+  background: #fff;
+  color: #222;
+  font: 1rem/1.6 system-ui, sans-serif;
+}
+
+main {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+h1, h2 {
+  line-height: 1.25;
+}
+
+a {
+  color: #005ea8;
+}
+
+code {
+  overflow-wrap: anywhere;
+}
+
+footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ddd;
+}
