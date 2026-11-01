@@ -18,8 +18,9 @@ jobs:
     env:
       RELEASE_TAG: ${{ github.ref_name }}
       FIREFOX_ADDON_ID: ${{ vars.FIREFOX_ADDON_ID }}
-      RELEASE_OUTPUT_DIR: ${{ runner.temp }}/release-builds
     steps:
+      - name: Set release output directory
+        run: printf 'RELEASE_OUTPUT_DIR=%s/release-builds\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
