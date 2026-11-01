@@ -17,34 +17,25 @@ strava_helper = (function (strava_helper) {
 
             let kudos_count = 0
 
-            kudos_count += document.querySelectorAll('button.js-add-kudo').length
-
-            // old markup
-            document.querySelectorAll('button.js-add-kudo').forEach(function (element) {
-                element.click()
-            })
-
-            // new markup (mid 2021)
-            // search for all "Kudos" buttons on the current page ...
-            document.querySelectorAll('button[data-testid="kudos_button"]').forEach(function (element) {
-                // ... skip if Kudos where already given to an activity
-                if (element.disabled || !element.querySelector('svg[data-testid="unfilled_kudos"]')) {
+            document.querySelectorAll('button.js-add-kudo, button[data-testid="kudos_button"]').forEach(function (element) {
+                if (element.disabled) {
                     return
                 }
 
-                // ... and skip own activities
-                let container = element.closest('[data-testid="web-feed-entry"], div.react-card-container')
-                if (!container) {
-                    console.warn('Strava Helper: skipping kudos button with an unrecognized activity container.')
-                    return
-                }
-                // own activity which is hidden ("Only you can view this activity. It won't appear on segment leaderboards and may not count toward some challenges")
-                if (container.querySelector('[data-testid="visibility_section"]')) {
-                    return
-                }
-                // own activity which is public (share dropdown exists)
-                if (container.querySelector('[data-testid="entry_actions_container"]')) {
-                    return
+                if (element.matches('[data-testid="kudos_button"]')) {
+                    if (!element.querySelector('svg[data-testid="unfilled_kudos"]')) {
+                        return
+                    }
+
+                    let container = element.closest('[data-testid="web-feed-entry"], div.react-card-container')
+                    if (!container) {
+                        console.warn('Strava Helper: skipping kudos button with an unrecognized activity container.')
+                        return
+                    }
+                    if (container.querySelector('[data-testid="visibility_section"]') ||
+                        container.querySelector('[data-testid="entry_actions_container"]')) {
+                        return
+                    }
                 }
 
                 element.click()
