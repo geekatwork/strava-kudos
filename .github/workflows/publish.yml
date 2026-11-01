@@ -1,8 +1,9 @@
-name: Validate tagged release
+name: Build and submit Chrome release
 
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,6 +14,7 @@ concurrency:
 
 jobs:
   build-release:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -37,6 +39,7 @@ jobs:
           node --check src/js/strave_kudos.js
           node --check scripts/build.js
           node --check scripts/release.js
+          node --check scripts/chrome-store.js
       - name: Run behavior and packaging tests
         run: npm test
       - name: Build and verify release archives from tagged source
@@ -56,3 +59,51 @@ jobs:
         run: |
           printf '### Validated release: %s\n\n' "$RELEASE_TAG" >> "$GITHUB_STEP_SUMMARY"
           printf 'Chromium and Firefox packages rebuilt, verified and linted. No store upload or signing was performed.\n' >> "$GITHUB_STEP_SUMMARY"
+
+  chrome-store:
+    needs: build-release
+    if: >-
+      always() && startsWith(github.ref, 'refs/tags/v') &&
+      ((github.event_name == 'push' && needs.build-release.result == 'success') ||
+      github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: chrome-web-store
+    concurrency:
+      group: chrome-web-store-publishing
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.22.2'
+          cache: npm
+      - run: npm ci
+      - name: Download validated release packages
+        if: github.event_name == 'push'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: release-packages-${{ github.ref_name }}
+          path: ${{ runner.temp }}/chrome-package
+      - name: Check authentication or submit release
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
+          CWS_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
+          CHROMIUM_PACKAGE: ${{ runner.temp }}/chrome-package/chromium.zip
+          CWS_AUTO_SUBMIT: ${{ vars.CWS_AUTO_SUBMIT }}
+        run: |
+          case "$CWS_AUTO_SUBMIT" in
+            ""|false|true) ;;
+            *) echo "CWS_AUTO_SUBMIT must be true, false, or unset." >&2; exit 1 ;;
+          esac
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] || [ "$CWS_AUTO_SUBMIT" != "true" ]; then
+            node scripts/chrome-store.js check
+          else
+            node scripts/chrome-store.js submit
+          fi

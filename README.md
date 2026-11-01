@@ -70,7 +70,7 @@ From another directory, invoke `node /path/to/project/scripts/build.js`
 with the same arguments (after installing project dependencies).
 
 For a version update, edit `src/manifest.json`, run tests, rebuild both ZIPs,
-and commit. Store submission is currently manual; see the
+and commit. For manual store submission, see the
 [distribution instructions](./src/README.md#distribution).
 
 ## Continuous integration
@@ -82,7 +82,8 @@ Build tests use temporary directories and never overwrite tracked `dist/`.
 
 CI artifacts use a test Firefox ID and are not store release packages.
 The workflow has read-only repository permissions and no publishing secrets.
-Tag-triggered store submission remains separate planned work.
+Chrome release submission is configured separately below; Firefox automation
+remains planned work.
 
 ### Tagged release builds
 
@@ -98,17 +99,57 @@ explicitly; there is no default test identity for releases.
 
 After a successful run, download `release-packages-vX.Y.Z` from its Actions
 artifacts. These are unsigned packages, not store approvals or signed Firefox
-installers. No store uploads occur yet; Chrome/Firefox submission jobs are
-tracked in #5 and #6. Those jobs must use independent protected environments,
-per-store concurrency with `cancel-in-progress: false`, and bounded status
-checks when they are implemented.
+installers. A separate Chrome job uses the `chrome-web-store` protected
+environment, a store-wide concurrency lock without cancellation, and bounded
+upload-status polling. Firefox submission remains tracked in #6.
 
 Prepare releases by updating the source version, testing, rebuilding and
 committing tracked `dist/`, then creating and pushing an annotated version tag.
 Only commits containing the new workflow can run it. Do not move existing
 release tags to trigger it retroactively. CI does not commit files or require
-publishing credentials, and it compares extracted content rather than ZIP
-timestamps.
+publishing credentials for its build job, and it compares extracted content
+rather than ZIP timestamps.
+
+### Chrome Web Store check and submission
+
+Configure the `chrome-web-store` environment:
+
+- Secrets: `CWS_CLIENT_ID`, `CWS_CLIENT_SECRET`, `CWS_REFRESH_TOKEN`.
+- Variables: `CWS_PUBLISHER_ID`, `CWS_EXTENSION_ID`.
+- Restrict environment deployments to tags matching `v*`, with a repository
+  tag ruleset limiting creation/update/deletion to trusted maintainers.
+- Optional variable `CWS_AUTO_SUBMIT`: leave unset or `false` for check-only
+  tag runs initially; set to exactly `true` only when ready to submit releases.
+
+With auto-submit enabled, a new numeric release tag runs shared tests/build
+verification/Firefox lint before downloading the validated Chromium artifact
+and submitting it to the existing Chrome listing. Normal review is requested;
+Google may block the submission on warnings. Submission is not proof of store
+approval or public availability.
+
+Manual checks always perform only authentication and item-status reads:
+
+```bash
+gh workflow run publish.yml --ref v1.1.5
+gh run list --workflow publish.yml
+gh run watch RUN_ID
+```
+
+Use an actual tag pointing to a commit containing this workflow and script.
+Dispatch on `main` is intentionally blocked by the environment restriction.
+Existing tags do not gain new workflow code; do not move published tags.
+Leave auto-submit off for the first new tag, verify the check result, then
+enable it for a later higher-version release. Manual dispatch cannot upload.
+
+The first check requires Google's OAuth endpoint and reads store status, but
+never uploads a package. Local automated tests mock all API calls and use no
+real credentials. Publishing scripts never print raw API bodies or tokens.
+Missing configuration, API failures, unknown states, and upload timeouts fail
+explicitly. Already-published/submitted versions and active submissions block
+uploads. Requests with publishing side effects are never retried automatically:
+inspect the store dashboard before attempting recovery or another release.
+GitHub may queue or replace pending concurrency runs; inspect every release
+run rather than assuming all pushed tags were submitted.
 
 Firefox lint errors fail CI. Its existing warnings about constant HTML icon
 markup are displayed for review rather than suppressed. `web-ext` is pinned;
