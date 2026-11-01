@@ -3,7 +3,7 @@ import { Script } from 'node:vm'
 import { JSDOM } from 'jsdom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const source = new Script(readFileSync(new URL('../assets/js/strave_kudos.js', import.meta.url), 'utf8'))
+const source = new Script(readFileSync(new URL('../src/js/strave_kudos.js', import.meta.url), 'utf8'))
 const sessions = []
 
 function fixture(name) {
