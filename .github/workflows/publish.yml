@@ -1,0 +1,57 @@
+name: Validate tagged release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+      FIREFOX_ADDON_ID: ${{ vars.FIREFOX_ADDON_ID }}
+      RELEASE_OUTPUT_DIR: ${{ runner.temp }}/release-builds
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.13.0'
+          cache: npm
+      - run: npm ci
+      - name: Validate release tag and configuration
+        run: node scripts/release.js validate
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/js/strave_kudos.js
+          node --check scripts/build.js
+          node --check scripts/release.js
+      - name: Run behavior and packaging tests
+        run: npm test
+      - name: Build and verify release archives from tagged source
+        run: node scripts/release.js build
+      - name: Lint packaged Firefox extension
+        run: |
+          unzip "$RELEASE_OUTPUT_DIR/firefox.zip" -d "$RUNNER_TEMP/release-firefox"
+          npm exec --offline -- web-ext lint --source-dir "$RUNNER_TEMP/release-firefox"
+      - name: Save validated release packages
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-packages-${{ github.ref_name }}
+          path: ${{ env.RELEASE_OUTPUT_DIR }}/*.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Summarize release validation
+        run: |
+          printf '### Validated release: %s\n\n' "$RELEASE_TAG" >> "$GITHUB_STEP_SUMMARY"
+          printf 'Chromium and Firefox packages rebuilt, verified and linted. No store upload or signing was performed.\n' >> "$GITHUB_STEP_SUMMARY"
