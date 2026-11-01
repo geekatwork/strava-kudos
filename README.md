@@ -123,6 +123,24 @@ Tests, CI, store publishing, and additional browser support are tracked in
 [GitHub issues](https://github.com/geekatwork/strava-kudos/issues) and the
 [project board](https://github.com/users/geekatwork/projects/5).
 
+## Public website
+
+The homepage and privacy policy are in [docs/](./docs/). After merging, enable
+GitHub Pages under **Settings > Pages > Deploy from a branch**, selecting
+`main` and `/docs`. Wait for the Pages deployment to finish, then confirm:
+
+- Homepage: https://geekatwork.github.io/strava-kudos/
+- Privacy policy: https://geekatwork.github.io/strava-kudos/privacy.html
+
+These are intended URLs, not confirmation that Pages is already enabled.
+Use them in Google OAuth Branding only after confirming they are accessible.
+Google may require domain ownership verification; GitHub Pages hosting alone
+does not guarantee OAuth verification or production approval.
+
+The policy separates extension behavior from planned maintainer OAuth
+publishing. Review it when publishing automation or data handling changes.
+The website files are not included in extension ZIPs.
+
 ## Attribution
 
 Based on the kudos functionality of Strava Helper. This is an unofficial
