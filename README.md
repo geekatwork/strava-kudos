@@ -84,6 +84,32 @@ CI artifacts use a test Firefox ID and are not store release packages.
 The workflow has read-only repository permissions and no publishing secrets.
 Tag-triggered store submission remains separate planned work.
 
+### Tagged release builds
+
+The [tagged release workflow](./.github/workflows/publish.yml) runs when a
+new `v*` tag is pushed. It checks out the exact tagged commit, requires
+`vMAJOR.MINOR.PATCH` to match `src/manifest.json`, runs tests, rebuilds from
+source into temporary output, verifies archive contents and browser metadata,
+and lints the Firefox package.
+
+Before using it, set the repository Actions variable `FIREFOX_ADDON_ID` to
+your permanent Firefox manifest ID. Missing or invalid configuration fails
+explicitly; there is no default test identity for releases.
+
+After a successful run, download `release-packages-vX.Y.Z` from its Actions
+artifacts. These are unsigned packages, not store approvals or signed Firefox
+installers. No store uploads occur yet; Chrome/Firefox submission jobs are
+tracked in #5 and #6. Those jobs must use independent protected environments,
+per-store concurrency with `cancel-in-progress: false`, and bounded status
+checks when they are implemented.
+
+Prepare releases by updating the source version, testing, rebuilding and
+committing tracked `dist/`, then creating and pushing an annotated version tag.
+Only commits containing the new workflow can run it. Do not move existing
+release tags to trigger it retroactively. CI does not commit files or require
+publishing credentials, and it compares extracted content rather than ZIP
+timestamps.
+
 Firefox lint errors fail CI. Its existing warnings about constant HTML icon
 markup are displayed for review rather than suppressed. `web-ext` is pinned;
 its current transitive dependencies have npm audit advisories (minimatch and
