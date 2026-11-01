@@ -203,6 +203,21 @@ it('check-only reports pending review without resubmitting', async () => {
     expect(options.fetchImpl).toHaveBeenCalledTimes(2)
 })
 
+it('reports upload state and actionable version details without retrying a pending release', async () => {
+    const options = await setup([token, status({
+        submittedItemRevisionStatus: revision('PENDING_REVIEW', '1.1.4'),
+        lastAsyncUploadState: 'SUCCEEDED',
+    })])
+    await expect(chromeStore(options)).rejects.toThrow('PENDING_REVIEW (1.1.4)')
+    expect(options.fetchImpl).toHaveBeenCalledTimes(2)
+})
+
+it('rejects an unknown initial upload state without exposing the raw response', async () => {
+    const options = await setup([token, status({ lastAsyncUploadState: credentials.clientSecret })])
+    await expect(chromeStore(options)).rejects.toThrow('unrecognized asynchronous upload state')
+    expect(options.fetchImpl).toHaveBeenCalledTimes(2)
+})
+
 it('reports a published response without claiming to have waited for review', async () => {
     const options = await setup([token, status(), upload(), { ...submitted, state: 'PUBLISHED' }])
     const result = await chromeStore(options)

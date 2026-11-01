@@ -109,6 +109,10 @@ export async function chromeStore({
         return data
     }
     const initial = await status()
+    if (initial.lastAsyncUploadState !== undefined &&
+        !['SUCCEEDED', 'IN_PROGRESS', 'FAILED', 'NOT_FOUND'].includes(initial.lastAsyncUploadState)) {
+        throw new Error('Store returned an unrecognized asynchronous upload state. No upload performed.')
+    }
     if (initial.takenDown || initial.warned) {
         throw new Error('The item has a policy warning or takedown. Resolve it in the store dashboard.')
     }
@@ -118,6 +122,7 @@ export async function chromeStore({
     const summary = [
         `Published revision: ${describe(initial.publishedItemRevisionStatus)}.`,
         `Submitted revision: ${describe(initial.submittedItemRevisionStatus)}.`,
+        `Last asynchronous upload state: ${initial.lastAsyncUploadState ?? 'not reported'}.`,
     ]
     if (mode === 'check') {
         return ['Authentication and item access verified. Check-only: no upload or publish call made.', ...summary].join('\n')
@@ -125,7 +130,7 @@ export async function chromeStore({
 
     for (const revision of [initial.publishedItemRevisionStatus, initial.submittedItemRevisionStatus]) {
         if (revision?.distributionChannels.some(channel => compareVersions(expectedVersion, channel.crxVersion) <= 0)) {
-            throw new Error('Release version is already published/submitted or is not newer. No upload performed; check the store dashboard.')
+            throw new Error(`Release version is already published/submitted or is not newer. No upload performed; check the store dashboard.\n${summary.join('\n')}`)
         }
     }
     if (initial.submittedItemRevisionStatus &&
