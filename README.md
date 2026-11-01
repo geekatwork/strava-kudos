@@ -1,133 +1,75 @@
 # strava-kudos
 
-A lightweight browser extension for Chrome, Edge, Brave, Opera, and Firefox
-that adds a **Give Kudos to All** button to Strava navigation.
+A lightweight browser extension that adds **Give Kudos to All** to Strava
+navigation. Supports Chrome, Edge, Brave, Opera, and Firefox. It works on
+loaded activities and does not automatically scroll.
 
-## Features
+See the [extension README](./src/README.md) for installation, usage,
+limitations, supported browsers, and attribution.
 
-- Give kudos to eligible activities currently loaded on the page.
-- Supports current feed cards and legacy kudos buttons.
-- Current feed-card handling skips already-kudoed activities, disabled buttons,
-  and your own activities.
-- Displays a count of kudos button clicks. Click again to hide the count.
-- Restores the button if Strava renders or replaces its navigation.
+## Downloads
 
-The extension does not automatically scroll or load additional activities.
-The count represents clicks, not confirmed successful requests to Strava.
-There are no feed filters, extra navigation links, or settings.
+- [Chromium ZIP](https://github.com/geekatwork/strava-kudos/raw/refs/heads/main/dist/chromium.zip)
+- [Firefox ZIP](https://github.com/geekatwork/strava-kudos/raw/refs/heads/main/dist/firefox.zip)
 
-## Installation
+Extract the Chromium ZIP and use **Load unpacked** on your browser's
+extensions page. The Firefox ZIP is an unsigned development package; use
+**Load Temporary Add-on** in `about:debugging`. Normal Firefox distribution
+requires Mozilla signing.
 
-### Chrome and Chromium browsers
+## Project layout
 
-1. Build the extension using the instructions below.
-2. Extract `dist/chromium.zip` into a permanent folder on the computer running
-   your browser.
-3. Open the browser's extensions page:
-   - Chrome: `chrome://extensions`
-   - Edge: `edge://extensions`
-   - Brave: `brave://extensions`
-   - Opera: `opera://extensions`
-4. Enable **Developer mode**, click **Load unpacked**, and select the extracted
-   folder containing `manifest.json`.
-5. Disable any original Strava Helper installation to avoid running two copies.
-6. Open or refresh your [Strava dashboard](https://www.strava.com/dashboard).
-
-Load the extracted folder, not the ZIP. Keep the folder in place while the
-extension is installed. After replacing its files with a newer build, reload
-the extension on the extensions page and refresh Strava.
-
-### Firefox (temporary development installation)
-
-1. Build the extension and extract `dist/firefox.zip`.
-2. Open `about:debugging`, select **This Firefox**, and click
-   **Load Temporary Add-on**.
-3. Select `manifest.json` in the extracted folder.
-4. Disable any original Strava Helper installation and refresh Strava.
-
-Temporary add-ons are removed when Firefox restarts. Normal Firefox
-distribution requires a signed add-on; see Distribution below.
-
-## Building
-
-Requires **Python 3.9 or newer** with no additional dependencies.
-From the project folder, run:
-
-```bash
-python3 build.py --firefox-id strava-kudos@example.org
+```text
+src/          Extension manifest, JavaScript, CSS, icons, and packaged README
+scripts/      Build tooling
+tests/        Offline behavior tests and synthetic feed fixtures
+dist/         Tracked browser ZIPs
 ```
 
-On Windows, use `py -3` instead of `python3` if that is your Python launcher.
-Replace the example ID with a unique, stable email-shaped Firefox add-on ID
-before publishing. It does not need to be a real email address. Keep the same
-ID for subsequent releases.
-
-The build script uses the shared JavaScript, CSS, icons, and this README to
-create:
-
-| Output | Target |
-| --- | --- |
-| `dist/chromium.zip` | Chrome, Edge, Brave, and Opera |
-| `dist/firefox.zip` | Firefox, with its add-on ID and data-collection declaration |
-
-Each ZIP contains `manifest.json` at its root. Rebuilding overwrites these
-ZIPs. Generated builds in `dist/` are tracked in Git alongside the source.
-Safari builds are not provided.
-
-## Development tests
+## Development
 
 Requires Node.js 22.12+ (22.x), 24.x, or 26+ and npm.
 
 ```bash
 npm ci
 npm test
+node --check src/js/strave_kudos.js
 ```
 
-The Vitest tests run the shipped content script in isolated jsdom pages with
-synthetic current and legacy feed fixtures. They do not load remote resources
-or send real kudos, and disconnect their observers after each test.
-Test dependencies are development-only and are not included in browser ZIPs.
+Vitest runs the actual content script in isolated jsdom pages. Tests use
+synthetic fixtures, load no remote resources, send no real kudos, and clean
+up their observers. Test dependencies are not shipped in the extension.
+Live-site Chrome and Firefox smoke tests are still needed before release.
 
-Tests cover eligibility, overlapping selectors, counts/reset, and navigation
-mounting/replacement. Disabled legacy buttons are excluded from the count,
-and buttons matching both selectors are clicked only once while retaining
-current-card eligibility checks.
+## Build
 
-DOM tests do not prove compatibility with Strava's live markup. Before a
-release, manually smoke-test the unpacked extension in Chrome and Firefox,
-including navigation changes and kudos behavior on activities you intend to
-give kudos to.
+Requires Python 3.9+ with no additional dependencies. From the project root:
 
-## Distribution
+```bash
+python3 scripts/build.py --firefox-id strava-kudos@example.org
+```
 
-### Chrome Web Store
+On Windows, use `py -3` if that is your Python launcher. Choose a unique,
+permanent Firefox add-on ID before publishing, and keep it for future updates.
+The example ID is a placeholder, not a real email address.
 
-1. Register in the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole).
-2. Create a new item and upload `dist/chromium.zip` directly.
-3. Complete the listing, screenshots, privacy disclosures, site-access
-   justification, and testing instructions.
-4. Submit for review.
+The script resolves paths relative to the project, so it can also be called
+by absolute path from another directory. It packages `src/README.md`, not
+this developer README, and writes `dist/chromium.zip` and `dist/firefox.zip`
+with `manifest.json` at the ZIP root. Rebuilding overwrites those tracked
+files; commit them with the source when preparing a release.
 
-For updates, increase the version in [manifest.json](./manifest.json), rebuild,
-and upload the new ZIP to the same store listing.
+For a version update, edit `src/manifest.json`, run tests, rebuild both ZIPs,
+and commit. Store submission is currently manual; see the
+[distribution instructions](./src/README.md#distribution).
 
-See the [official publishing guide](https://developer.chrome.com/docs/webstore/publish).
-Edge and Opera have their own store submission processes.
+## Roadmap
 
-### Mozilla Add-ons
-
-Upload `dist/firefox.zip` through [Mozilla Add-ons](https://addons.mozilla.org/developers/)
-for review and signing. Choose listed distribution for a public store listing
-or unlisted distribution for self-distribution of the signed add-on.
-Keep the Firefox add-on ID unchanged across releases, increase the manifest
-version, and rebuild for each update.
-
-The generated Firefox manifest declares no extension data collection. The
-extension interacts locally with page controls; clicking kudos causes Strava
-itself to send its normal kudos requests. Keep store disclosures accurate if
-the extension's behavior changes.
+Tests, CI, store publishing, and additional browser support are tracked in
+[GitHub issues](https://github.com/geekatwork/strava-kudos/issues) and the
+[project board](https://github.com/users/geekatwork/projects/5).
 
 ## Attribution
 
-This extension is based on the kudos functionality of the **Strava Helper**
-extension. It is an unofficial extension and is not affiliated with Strava.
+Based on the kudos functionality of Strava Helper. This is an unofficial
+extension and is not affiliated with Strava.

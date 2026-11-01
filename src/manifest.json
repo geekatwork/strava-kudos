@@ -1,0 +1,18 @@
+{
+   "content_scripts": [ {
+      "css": [ "css/strava-helper.css" ],
+      "js": [ "js/strave_kudos.js" ],
+      "matches": [ "https://www.strava.com/*" ]
+   } ],
+   "description": "Adds a button to give kudos to all visible Strava activities.",
+   "icons": {
+      "128": "icons/logo128.png",
+      "16": "icons/logo16.png",
+      "32": "icons/logo32.png",
+      "48": "icons/logo48.png",
+      "64": "icons/logo64.png"
+   },
+   "manifest_version": 3,
+   "name": "strava-kudos",
+   "version": "1.1.2"
+}

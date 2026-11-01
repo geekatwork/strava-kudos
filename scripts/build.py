@@ -18,7 +18,8 @@ def build():
     if not re.fullmatch(r"[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+", args.firefox_id) or len(args.firefox_id) > 80:
         parser.error("--firefox-id must be an email-shaped add-on ID of at most 80 characters.")
 
-    root = Path(__file__).resolve().parent
+    project = Path(__file__).resolve().parent.parent
+    root = project / "src"
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     resources = {"README.md", *manifest.get("icons", {}).values()}
     for content_script in manifest["content_scripts"]:
@@ -46,7 +47,7 @@ def build():
         }
     }
 
-    output = root / "dist"
+    output = project / "dist"
     output.mkdir(exist_ok=True)
     for browser, browser_manifest in variants.items():
         destination = output / f"{browser}.zip"
