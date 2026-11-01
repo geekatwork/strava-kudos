@@ -24,6 +24,7 @@ jobs:
           node --check src/js/strave_kudos.js
           node --check scripts/build.js
           node --check scripts/release.js
+          node --check scripts/chrome-store.js
       - name: Run behavior and build tests
         run: npm test
       - name: Build validation packages
