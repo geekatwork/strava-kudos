@@ -127,19 +127,58 @@ and submitting it to the existing Chrome listing. Normal review is requested;
 Google may block the submission on warnings. Submission is not proof of store
 approval or public availability.
 
-Manual checks always perform only authentication and item-status reads:
+### One-command tagged release pipeline
+
+Dispatch directly on an existing numeric release tag containing this workflow.
+The selected tag must match the manifest version. Manual runs always run the
+shared tests, syntax checks, builds, archive verification and Firefox lint first.
+Only Chrome store selection is supported; other or combined selections fail
+explicitly before any upload. Firefox packaging remains part of shared validation,
+not Firefox publishing.
+
+Credential-free validation/build only (the default mode):
 
 ```bash
-gh workflow run publish.yml --ref v1.1.5
-gh run list --workflow publish.yml
-gh run watch RUN_ID
+gh workflow run publish.yml --ref v1.1.7 -f mode=validate -f stores=chrome
 ```
 
-Use an actual tag pointing to a commit containing this workflow and script.
-Dispatch on `main` is intentionally blocked by the environment restriction.
+Validate/build, then authenticate and read Chrome status without uploading:
+
+```bash
+gh workflow run publish.yml --ref v1.1.7 -f mode=check -f stores=chrome
+```
+
+Validate/build, then upload and submit for normal Google review:
+
+```bash
+gh workflow run publish.yml --ref v1.1.7 -f mode=submit -f stores=chrome
+```
+
+These are example commands: use a real release tag containing the new inputs.
+Manual `submit` is an explicit authorization to upload, independent of
+`CWS_AUTO_SUBMIT`; that variable controls automatic tag-push runs only.
+Validation mode skips the protected Chrome job entirely and needs no publishing
+credentials (the permanent `FIREFOX_ADDON_ID` build variable is still required).
+Check and submit modes use the protected environment and Chrome-wide lock.
+
+Dispatch returns before the workflow completes. Find the correct manual run,
+watch it, and inspect its result:
+
+```bash
+gh run list --workflow publish.yml --branch v1.1.7 --event workflow_dispatch
+gh run watch RUN_ID
+gh run view RUN_ID
+```
+
+Trigger success does not mean validation passed, submission succeeded or the
+store approved the release. Inspect the Chrome job summary and store dashboard
+for upload, review and public availability status.
+
+Dispatch on `main` fails release-ref validation before accessing store secrets.
 Existing tags do not gain new workflow code; do not move published tags.
 Leave auto-submit off for the first new tag, verify the check result, then
-enable it for a later higher-version release. Manual dispatch cannot upload.
+enable it for a later higher-version release. Old tags retain their old manual
+check-only behavior.
 
 The first check requires Google's OAuth endpoint and reads store status, but
 never uploads a package. Local automated tests mock all API calls and use no
@@ -148,6 +187,14 @@ Missing configuration, API failures, unknown states, and upload timeouts fail
 explicitly. Already-published/submitted versions and active submissions block
 uploads. Requests with publishing side effects are never retried automatically:
 inspect the store dashboard before attempting recovery or another release.
+Before a manual submission retry, run check mode and inspect the dashboard.
+An already-submitted/published version, active submission or upload in progress
+blocks uploads with an actionable error. The status API's last asynchronous
+upload state does not identify the uploaded version: after an upload succeeds
+but submission fails or times out, do not blindly rerun submit. Resolve the
+uploaded draft in the dashboard first, or prepare a higher-version release
+after confirming the previous operation's outcome. The pipeline does not
+automatically resume or retry an ambiguous upload/publish operation.
 GitHub may queue or replace pending concurrency runs; inspect every release
 run rather than assuming all pushed tags were submitted.
 
