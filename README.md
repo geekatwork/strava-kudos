@@ -28,7 +28,7 @@ dist/         Tracked browser ZIPs
 
 ## Development
 
-Requires Node.js 22.12+ (22.x), 24.x, or 26+ and npm.
+Requires Node.js 22.22.2+ (22.x), 24.15.0+ (24.x), or 26+ and npm.
 
 ```bash
 npm ci
