@@ -51,14 +51,14 @@ distribution requires a signed add-on; see Distribution below.
 
 ## Building
 
-Requires **Python 3.9 or newer** with no additional dependencies.
+Requires the Node.js/npm setup described under Development tests.
 From the project folder, run:
 
 ```bash
-python3 scripts/build.py --firefox-id strava-kudos@example.org
+npm ci
+npm run build -- --firefox-id strava-kudos@example.org
 ```
 
-On Windows, use `py -3` instead of `python3` if that is your Python launcher.
 Replace the example ID with a unique, stable email-shaped Firefox add-on ID
 before publishing. It does not need to be a real email address. Keep the same
 ID for subsequent releases.
