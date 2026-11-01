@@ -1,0 +1,40 @@
+name: Validate extension
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.13.0'
+          cache: npm
+      - run: npm ci
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/js/strave_kudos.js
+          node --check scripts/build.js
+      - name: Run behavior and build tests
+        run: npm test
+      - name: Build validation packages
+        run: npm run build -- --firefox-id ci-validation@example.org --output-dir "$RUNNER_TEMP/browser-builds"
+      - name: Lint the packaged Firefox extension
+        run: |
+          unzip "$RUNNER_TEMP/browser-builds/firefox.zip" -d "$RUNNER_TEMP/firefox"
+          npm exec --offline -- web-ext lint --source-dir "$RUNNER_TEMP/firefox"
+      - name: Save validated packages
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: validation-packages
+          path: ${{ runner.temp }}/browser-builds/*.zip
+          if-no-files-found: error
+          retention-days: 7
