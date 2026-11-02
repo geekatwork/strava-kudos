@@ -48,6 +48,73 @@ afterEach(() => {
 })
 
 describe('kudos clicks', () => {
+    it('uses each modern footer, not shared card actions, to determine eligibility', () => {
+        const page = setup(fixture('modern-feed'))
+        page.button().click()
+        for (const id of ['modern-first', 'modern-other', 'modern-group-first']) {
+            expect(page.clicks[id]).toHaveBeenCalledTimes(1)
+        }
+        for (const id of ['modern-own', 'modern-liked']) {
+            expect(page.clicks[id]).not.toHaveBeenCalled()
+        }
+        expect(page.button().querySelector('.strava-helper-kudos-count').textContent).toBe('3x')
+        expect(page.warn).not.toHaveBeenCalled()
+    })
+
+    it('compares localized labels without depending on English text', () => {
+        const page = setup(fixture('modern-feed')
+            .replaceAll('View all kudos', 'Alle Kudos ansehen')
+            .replaceAll('Give kudos', 'Kudos geben'))
+        page.button().click()
+        expect(page.clicks['modern-other']).toHaveBeenCalledTimes(1)
+        expect(page.clicks['modern-own']).not.toHaveBeenCalled()
+        expect(page.button().querySelector('.strava-helper-kudos-count').textContent).toBe('3x')
+    })
+
+    it('does not borrow eligibility from another footer when labels are missing', () => {
+        const page = setup(fixture('modern-feed').replace('title="Give kudos"', ''))
+        page.button().click()
+        expect(page.clicks['modern-other']).not.toHaveBeenCalled()
+        expect(page.clicks['modern-own']).not.toHaveBeenCalled()
+        expect(page.warn).toHaveBeenCalledExactlyOnceWith(
+            'Strava Helper: skipping kudos button with unrecognized eligibility controls.'
+        )
+        expect(page.button().querySelector('.strava-helper-kudos-count').textContent).toBe('2x')
+    })
+
+    it('skips disabled modern controls and does not click duplicate selector matches twice', () => {
+        const page = setup(fixture('modern-feed')
+            .replace('id="modern-first"', 'id="modern-first" disabled')
+            .replace('id="modern-other"', 'id="modern-other" class="js-add-kudo"'))
+        page.button().click()
+        expect(page.clicks['modern-first']).not.toHaveBeenCalled()
+        expect(page.clicks['modern-other']).toHaveBeenCalledTimes(1)
+        expect(page.button().querySelector('.strava-helper-kudos-count').textContent).toBe('2x')
+    })
+
+    it('does not click modern own activities with no recognition markers', () => {
+        const page = setup('<ul class="user-nav"></ul><div data-testid="web-feed-entry">' +
+            '<div data-testid="kudos_comments_container"><button id="own-zero" data-testid="kudos_button">' +
+            '<svg data-testid="unfilled_kudos"></svg></button></div></div>')
+        page.button().click()
+        expect(page.clicks['own-zero']).not.toHaveBeenCalled()
+        expect(page.warn).toHaveBeenCalledOnce()
+        expect(page.button().querySelector('.strava-helper-kudos-count').textContent).toBe('0x')
+    })
+
+    it('handles hidden kudos avatars using the feed localized list title', () => {
+        const page = setup(fixture('modern-feed').replace(
+            '<div data-testid="avatar_group" title="View all kudos"></div>\n    <div data-testid="counts_wrapper"><button data-testid="kudos_count">2</button></div>',
+            '<div data-testid="counts_wrapper"><button data-testid="kudos_count">2</button></div>'
+        ))
+        expect(page.document.getElementById('modern-other').parentElement
+            .querySelector('[data-testid="avatar_group"]')).toBeNull()
+        page.button().click()
+        expect(page.clicks['modern-other']).toHaveBeenCalledTimes(1)
+        expect(page.clicks['modern-own']).not.toHaveBeenCalled()
+        expect(page.button().querySelector('.strava-helper-kudos-count').textContent).toBe('3x')
+    })
+
     it('clicks eligible current cards and skips already-kudoed, disabled and own activities', () => {
         const page = setup(fixture('current-feed'))
         page.button().click()

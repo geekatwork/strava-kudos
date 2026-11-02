@@ -16,6 +16,9 @@ strava_helper = (function (strava_helper) {
             }
 
             let kudos_count = 0
+            let kudosListTitle = document.querySelector(
+                '[data-testid="kudos_comments_container"] [data-testid="avatar_group"][title]'
+            )?.title
 
             document.querySelectorAll('button.js-add-kudo, button[data-testid="kudos_button"]').forEach(function (element) {
                 if (element.disabled) {
@@ -32,7 +35,20 @@ strava_helper = (function (strava_helper) {
                         console.warn('Strava Helper: skipping kudos button with an unrecognized activity container.')
                         return
                     }
-                    if (container.querySelector('[data-testid="visibility_section"]') ||
+                    let footer = element.closest('[data-testid="kudos_comments_container"]')
+                    if (footer && container.contains(footer)) {
+                        let giveButton = footer.querySelector('button[data-testid="give_kudos_button"]')
+                        let viewTitle = footer.querySelector('[data-testid="avatar_group"][title]')?.title || kudosListTitle
+                        // Own-activity controls open the kudos list, even with an unfilled icon.
+                        if (viewTitle && element.title === viewTitle) {
+                            return
+                        }
+                        if (!(giveButton && !giveButton.disabled) &&
+                            !(viewTitle && element.title && element.title !== viewTitle)) {
+                            console.warn('Strava Helper: skipping kudos button with unrecognized eligibility controls.')
+                            return
+                        }
+                    } else if (container.querySelector('[data-testid="visibility_section"]') ||
                         container.querySelector('[data-testid="entry_actions_container"]')) {
                         return
                     }

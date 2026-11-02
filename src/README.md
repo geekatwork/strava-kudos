@@ -9,6 +9,8 @@ that adds a **Give Kudos to All** button to Strava navigation.
 - Supports current feed cards and legacy kudos buttons.
 - Current feed-card handling skips already-kudoed activities, disabled buttons,
   and your own activities.
+- Grouped feed entries check each activity's kudos controls separately. Controls
+  with unrecognized eligibility are skipped with a browser-console warning.
 - Displays a count of kudos button clicks. Click again to hide the count.
 - Restores the button if Strava renders or replaces its navigation.
 
